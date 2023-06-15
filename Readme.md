@@ -1,4 +1,4 @@
-# Transforming large datasets in Python
+# Transforming Medium Datasets in Python
 _Comparing four dataframe, columnar, and SQL approaches_
 
 Comparing Pandas, Polars, Pyarrow, and DuckDB.
