@@ -1,4 +1,5 @@
-# DataFrame comparison
+# Transforming large datasets in Python
+_Comparing four dataframe, columnar, and SQL approaches_
 
 Comparing Pandas, Polars, Pyarrow, and DuckDB.
 

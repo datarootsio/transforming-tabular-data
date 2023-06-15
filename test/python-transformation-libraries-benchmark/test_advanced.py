@@ -8,6 +8,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.csv
 import pyarrow.compute as pc
+import pytest
 
 from common import OCCURRENCE_TSV_PATH, EVENT_TSV_PATH
 
@@ -23,7 +24,8 @@ EXPECTED_NUMBER_OF_ANATIDAE_AROUND_POI = 15
 EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI = 26
 
 
-def test_join_duckdb(benchmark):
+@pytest.mark.library_name("DuckDB")
+def test_duckdb(benchmark):
     conn = duckdb.connect()
     def get_genera():
         return conn.execute(
@@ -63,7 +65,6 @@ def test_join_duckdb(benchmark):
         ).fetchall()
     
     genera = benchmark(get_genera)
-    print(genera)
     # Some birds are not in the taxon table (1 of the 41 in this dataset to be exact)
     # treat these as non-anatidae with bool(is_anatidae)
     number_of_anatidae = sum(bool(is_anatidae) for _, _, is_anatidae in genera)
@@ -71,7 +72,8 @@ def test_join_duckdb(benchmark):
     assert len(genera) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
 
 
-def test_join_polars(benchmark):
+@pytest.mark.library_name("Polars")
+def test_polars(benchmark):
     def get_genera():
         event_distance_df = (
             pl.read_csv(EVENT_TSV_PATH, separator="\t", quote_char=None)
@@ -88,27 +90,28 @@ def test_join_polars(benchmark):
             pl.read_csv(TAXON_TSV_PATH, separator="\t", quote_char=None)
             .filter(pl.col("class") == "Aves")
             .select(
-                aves_taxon_canonicalName=pl.col("canonicalName").str.to_lowercase(),
-                aves_taxon_family=pl.col("family").str.to_lowercase(),
-                aves_taxon_genus=pl.col("genus").str.to_lowercase(),
+                canonicalName=pl.col("canonicalName").str.to_lowercase(),
+                family=pl.col("family").str.to_lowercase(),
+                genus=pl.col("genus").str.to_lowercase(),
             )
-            .sort(pl.col("aves_taxon_canonicalName"))
+            .sort(pl.col("canonicalName"))
         )
         occurrence_df = (
             pl.read_csv(OCCURRENCE_TSV_PATH, separator="\t", quote_char=None)
             .select(
-                occurrence_scientificName=pl.col("scientificName").str.to_lowercase(),
+                scientificName=pl.col("scientificName").str.to_lowercase(),
                 occurrence_eventID=pl.col("eventID"),
             )
         )
         return (
             event_distance_df
             .join(occurrence_df, left_on="event_eventID", right_on="occurrence_eventID")
-            .join(aves_taxon_df, left_on="occurrence_scientificName", right_on="aves_taxon_canonicalName", how="left")
-            .groupby("aves_taxon_genus")
+            .join(aves_taxon_df, left_on="scientificName", right_on="canonicalName", how="left")
+            .groupby("genus")
             .agg([
                 pl.col("distance").min().alias("distance"),
-                pl.col("aves_taxon_family").first().eq("anatidae").alias("is_anatidae"),
+                pl.col("scientificName").first().alias("sample_scientific_name"),
+                pl.col("family").first().eq("anatidae").alias("is_anatidae"),
             ])
             .sort(pl.col("distance"))
             .to_dict()
@@ -121,41 +124,46 @@ def test_join_polars(benchmark):
     assert len(genera["is_anatidae"]) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
 
 
-def test_join_pandas(benchmark):
+@pytest.mark.library_name("Pandas")
+def test_pandas(benchmark):
     def get_genera():
         event_df = (
             pd.read_csv(EVENT_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
             .assign(distance=lambda df: np.sqrt((df.decimalLatitude - POI_LATITUDE)**2 + (df.decimalLongitude - POI_LONGITUDE)**2))
             .loc[lambda df: df.distance < POI_MAX_DISTANCE_DEGREES]
             .loc[:, ["id", "distance"]]
-            .rename(columns={"id": "event_eventID"})
         )
         aves_taxon_df = (
             pd.read_csv(TAXON_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
             .loc[lambda df: df["class"] == "Aves"]
             .loc[:, ["canonicalName", "family", "genus"]]
-            .rename(columns={"canonicalName": "aves_taxon_canonicalName", "family": "aves_taxon_family", "genus": "aves_taxon_genus"})
-            .sort_values("aves_taxon_canonicalName")
+            .assign(
+                canonicalName=lambda df: df.canonicalName.str.lower(),
+                family=lambda df: df.family.str.lower(),
+                genus=lambda df: df.genus.str.lower(),
+            )
+            .sort_values("canonicalName")
         )
         occurrence_df = (
             pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
             .loc[:, ["scientificName", "eventID"]]
-            .rename(columns={"scientificName": "occurrence_scientificName", "eventID": "occurrence_eventID"})
+            .assign(scientificName=lambda df: df.scientificName.str.lower())
         )
         return (
             event_df
-            .merge(occurrence_df, left_on="event_eventID", right_on="occurrence_eventID")
-            .merge(aves_taxon_df, left_on="occurrence_scientificName", right_on="aves_taxon_canonicalName", how="left")
-            .groupby("aves_taxon_genus")
-            .agg({"distance": "min", "is_anatidae": lambda s: s.iloc[0] == "anatidae"})
+            .merge(occurrence_df, left_on="id", right_on="eventID")
+            .merge(aves_taxon_df, left_on="scientificName", right_on="canonicalName", how="left")
+            .groupby("genus", dropna=False)
+            .agg({"distance": "min", "family": lambda s: s.iloc[0], "scientificName": lambda s: s.iloc[0]})
+            .assign(is_anatidae=lambda df: np.where(df.family == "anatidae", True, False))
             .sort_values("distance")
             .to_dict()
         )
     
     genera = benchmark(get_genera)
-    number_of_anatidae = sum(bool(isAnatidae) for isAnatidae in genera["is_anatidae"])
+    number_of_anatidae = sum(bool(isAnatidae) for isAnatidae in genera["is_anatidae"].values())
     assert number_of_anatidae == EXPECTED_NUMBER_OF_ANATIDAE_AROUND_POI
-    assert len(genera["aves_taxon_family"]) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
+    assert len(genera["is_anatidae"]) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
 
 
 PYARROW_READ_CSV_KWARGS = dict(
@@ -163,7 +171,9 @@ PYARROW_READ_CSV_KWARGS = dict(
     parse_options=pyarrow.csv.ParseOptions(delimiter="\t", quote_char=False),
 )
 
-def test_join_pyarrow(benchmark):
+
+@pytest.mark.library_name("PyArrow")
+def test_pyarrow(benchmark):
     def get_genera():
         event_distance_table = pa.csv.read_csv(EVENT_TSV_PATH, convert_options=pa.csv.ConvertOptions(column_types={"decimalLatitude": pa.float64(), "decimalLongitude": pa.float64()}), **PYARROW_READ_CSV_KWARGS)
         event_distance_table = (
@@ -176,11 +186,8 @@ def test_join_pyarrow(benchmark):
             .select(["id", "distance"])
             .rename_columns(["id", "distance"])
         )
-        aves_taxon_table = pa.csv.read_csv(TAXON_TSV_PATH, **PYARROW_READ_CSV_KWARGS)
-        # sample = aves_taxon_table.to_pandas().iloc[90000:90010]
-        # print(sample[["taxonID", "canonicalName", "family", "genus"]])
         aves_taxon_table = (
-            aves_taxon_table
+            pa.csv.read_csv(TAXON_TSV_PATH, **PYARROW_READ_CSV_KWARGS)
             .filter(pc.equal(pc.field("class"), "Aves"))
             .select(["canonicalName", "family", "genus"])
         )
@@ -191,7 +198,6 @@ def test_join_pyarrow(benchmark):
             .set_column(2, "genus", pc.utf8_lower(aves_taxon_table["genus"]))
             .sort_by([("canonicalName", "ascending")])
         )
-        # print(aves_taxon_table.to_pandas().iloc[10000:10010])
         occurrence_table = pa.csv.read_csv(OCCURRENCE_TSV_PATH, **PYARROW_READ_CSV_KWARGS)
         occurrence_table = (
             occurrence_table
@@ -219,3 +225,9 @@ def test_join_pyarrow(benchmark):
     number_of_anatidae = sum(bool(isAnatidae) for isAnatidae in genera["is_anatidae"])
     assert number_of_anatidae == EXPECTED_NUMBER_OF_ANATIDAE_AROUND_POI
     assert len(genera["is_anatidae"]) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
+
+
+if __name__ == "__main__":
+    pass
+    # test_polars(lambda f: f())
+    # test_pandas(lambda f: f())

@@ -2,6 +2,7 @@ import duckdb
 import pandas as pd
 import polars as pl
 import pyarrow.csv
+import pytest
 
 from common import OCCURRENCE_TSV_PATH
 
@@ -10,7 +11,10 @@ EXPECTED_NUMBER_OF_SPECIES = 186
 EXPECTED_TOTAL_NUMBER_OF_BIRDS = 40920379
 
 
-def test_groupby_duckdb(benchmark):
+def test_duckdb(benchmark):
+    benchmark.extra_info["library_name"] = "DuckDB"
+    benchmark.extra_info["library_version"] = duckdb.__version__
+
     conn = duckdb.connect()
     def get_bird_counts():
         return conn.execute(f"""
@@ -25,7 +29,10 @@ def test_groupby_duckdb(benchmark):
     assert sum(count for _, count in bird_counts) == EXPECTED_TOTAL_NUMBER_OF_BIRDS
 
 
-def test_groupby_polars(benchmark):
+def test_polars(benchmark):
+    benchmark.extra_info["library_name"] = "Polars"
+    benchmark.extra_info["library_version"] = pl.__version__
+
     def get_bird_counts():
         df = pl.read_csv(OCCURRENCE_TSV_PATH, separator="\t", quote_char=None)
         return (
@@ -41,7 +48,10 @@ def test_groupby_polars(benchmark):
     assert sum(bird_counts["individualCount"]) == EXPECTED_TOTAL_NUMBER_OF_BIRDS
 
 
-def test_groupby_pandas(benchmark):
+def test_pandas(benchmark):
+    benchmark.extra_info["library_name"] = "Pandas"
+    benchmark.extra_info["library_version"] = pd.__version__
+
     def get_bird_counts():
         df = pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t")
         return (
@@ -57,7 +67,10 @@ def test_groupby_pandas(benchmark):
     assert sum(bird_counts["individualCount"].values()) == EXPECTED_TOTAL_NUMBER_OF_BIRDS
 
 
-def test_groupby_pyarrow(benchmark):
+def test_pyarrow(benchmark):
+    benchmark.extra_info["library_name"] = "PyArrow"
+    benchmark.extra_info["library_version"] = pyarrow.__version__
+
     def get_bird_counts():
         table = pyarrow.csv.read_csv(
             OCCURRENCE_TSV_PATH,
@@ -77,4 +90,4 @@ def test_groupby_pyarrow(benchmark):
 
 
 if __name__ == "__main__":
-    test_groupby_pandas(lambda func: func())
+    test_pandas(lambda func: func())
