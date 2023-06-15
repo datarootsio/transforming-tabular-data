@@ -127,38 +127,33 @@ def test_polars(benchmark):
 @pytest.mark.library_name("Pandas")
 def test_pandas(benchmark):
     def get_genera():
-        event_df = (
-            pd.read_csv(EVENT_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
-            .assign(distance=lambda df: np.sqrt((df.decimalLatitude - POI_LATITUDE)**2 + (df.decimalLongitude - POI_LONGITUDE)**2))
-            .loc[lambda df: df.distance < POI_MAX_DISTANCE_DEGREES]
-            .loc[:, ["id", "distance"]]
-        )
-        aves_taxon_df = (
-            pd.read_csv(TAXON_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
-            .loc[lambda df: df["class"] == "Aves"]
-            .loc[:, ["canonicalName", "family", "genus"]]
-            .assign(
-                canonicalName=lambda df: df.canonicalName.str.lower(),
-                family=lambda df: df.family.str.lower(),
-                genus=lambda df: df.genus.str.lower(),
-            )
-            .sort_values("canonicalName")
-        )
-        occurrence_df = (
-            pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
-            .loc[:, ["scientificName", "eventID"]]
-            .assign(scientificName=lambda df: df.scientificName.str.lower())
-        )
-        return (
+        event_df = pd.read_csv(EVENT_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
+        event_df["distance"] = np.sqrt((event_df.decimalLatitude - POI_LATITUDE)**2 + (event_df.decimalLongitude - POI_LONGITUDE)**2)
+        event_df = event_df[["id", "distance"]]
+        event_df = event_df[event_df.distance < POI_MAX_DISTANCE_DEGREES]
+
+        aves_taxon_df = pd.read_csv(TAXON_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
+        aves_taxon_df = aves_taxon_df[aves_taxon_df["class"] == "Aves"]
+        aves_taxon_df = aves_taxon_df[["canonicalName", "family", "genus"]]
+        aves_taxon_df["canonicalName"] = aves_taxon_df.canonicalName.str.lower()
+        aves_taxon_df["family"] = aves_taxon_df.family.str.lower()
+        aves_taxon_df["genus"] = aves_taxon_df.genus.str.lower()
+        aves_taxon_df = aves_taxon_df.sort_values("canonicalName")
+
+        occurrence_df = pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
+        occurrence_df = occurrence_df[["scientificName", "eventID"]]
+        occurrence_df["scientificName"] = occurrence_df.scientificName.str.lower()
+
+        genera = (
             event_df
             .merge(occurrence_df, left_on="id", right_on="eventID")
             .merge(aves_taxon_df, left_on="scientificName", right_on="canonicalName", how="left")
             .groupby("genus", dropna=False)
             .agg({"distance": "min", "family": lambda s: s.iloc[0], "scientificName": lambda s: s.iloc[0]})
-            .assign(is_anatidae=lambda df: np.where(df.family == "anatidae", True, False))
-            .sort_values("distance")
-            .to_dict()
         )
+        genera["is_anatidae"] = genera.family == "anatidae"
+        genera = genera.sort_values("distance")
+        return genera.to_dict()
     
     genera = benchmark(get_genera)
     number_of_anatidae = sum(bool(isAnatidae) for isAnatidae in genera["is_anatidae"].values())
@@ -228,6 +223,9 @@ def test_pyarrow(benchmark):
 
 
 if __name__ == "__main__":
-    pass
-    # test_polars(lambda f: f())
-    # test_pandas(lambda f: f())
+    def mock_benchmark(func):
+        return func()
+
+    mock_benchmark.extra_info = {}
+    # test_polars(mock_benchmark)
+    # test_pandas(mock_benchmark)

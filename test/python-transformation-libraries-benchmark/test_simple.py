@@ -90,4 +90,8 @@ def test_pyarrow(benchmark):
 
 
 if __name__ == "__main__":
-    test_pandas(lambda func: func())
+    def mock_benchmark(func):
+        return func()
+
+    mock_benchmark.extra_info = {}
+    test_pandas(mock_benchmark)
