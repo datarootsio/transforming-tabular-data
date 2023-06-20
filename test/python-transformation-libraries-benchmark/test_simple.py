@@ -4,16 +4,17 @@ import polars as pl
 import pyarrow.csv
 import pytest
 
-from common import OCCURRENCE_TSV_PATH
+from common import OCCURRENCE_TSV_PATH, set_benchmark_meta
 
+
+BENCHMARK_NAME = "Simple"
 
 EXPECTED_NUMBER_OF_SPECIES = 186
 EXPECTED_TOTAL_NUMBER_OF_BIRDS = 40920379
 
 
 def test_duckdb(benchmark):
-    benchmark.extra_info["library_name"] = "DuckDB"
-    benchmark.extra_info["library_version"] = duckdb.__version__
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "DuckDB", duckdb)
 
     conn = duckdb.connect()
     def get_bird_counts():
@@ -30,8 +31,7 @@ def test_duckdb(benchmark):
 
 
 def test_polars(benchmark):
-    benchmark.extra_info["library_name"] = "Polars"
-    benchmark.extra_info["library_version"] = pl.__version__
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "Polars", pl)
 
     def get_bird_counts():
         df = pl.read_csv(OCCURRENCE_TSV_PATH, separator="\t", quote_char=None)
@@ -49,8 +49,7 @@ def test_polars(benchmark):
 
 
 def test_pandas(benchmark):
-    benchmark.extra_info["library_name"] = "Pandas"
-    benchmark.extra_info["library_version"] = pd.__version__
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "Pandas", pd)
 
     def get_bird_counts():
         df = pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t")
@@ -68,8 +67,7 @@ def test_pandas(benchmark):
 
 
 def test_pyarrow(benchmark):
-    benchmark.extra_info["library_name"] = "PyArrow"
-    benchmark.extra_info["library_version"] = pyarrow.__version__
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "PyArrow", pyarrow)
 
     def get_bird_counts():
         table = pyarrow.csv.read_csv(

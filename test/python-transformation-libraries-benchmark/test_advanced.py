@@ -1,20 +1,17 @@
 import csv
-from pathlib import Path
 
 import duckdb
+import numpy as np
 import pandas as pd
 import polars as pl
-import numpy as np
 import pyarrow as pa
-import pyarrow.csv
 import pyarrow.compute as pc
-import pytest
+import pyarrow.csv
 
-from common import OCCURRENCE_TSV_PATH, EVENT_TSV_PATH
+from common import EVENT_TSV_PATH, OCCURRENCE_TSV_PATH, TAXON_TSV_PATH, set_benchmark_meta
 
 
-GBIF_BACKBONE_PATH = Path("/Users/pieter/Downloads/backbone/")
-TAXON_TSV_PATH = GBIF_BACKBONE_PATH / "Taxon.tsv"
+BENCHMARK_NAME = "Advanced"
 
 POI_LATITUDE = 50.87
 POI_LONGITUDE = 4.70
@@ -24,10 +21,23 @@ EXPECTED_NUMBER_OF_ANATIDAE_AROUND_POI = 15
 EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI = 26
 
 
-@pytest.mark.library_name("DuckDB")
 def test_duckdb(benchmark):
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "DuckDB", duckdb)
+
     conn = duckdb.connect()
     def get_genera():
+        # We use the euclidean distance between the POI and the event location. This is fine
+        # for a small area in central Europe, but not for larger areas, areas close to the poles,
+        # or more sensitive analyses. For these, use the Haversine, Vincenty, or more advanced
+        # geodesic distance formulas (e.g. https://link.springer.com/article/10.1007/s00190-012-0578-z).
+        # For DuckDB specifically, see also the Spatial extension:
+        # https://github.com/duckdblabs/duckdb_spatial
+        # For Postgres, see PostGIS: https://postgis.net/
+        # https://postgis.net/docs/ST_Distance.html
+        # On equidistant cylindrical distortion, see: https://en.wikipedia.org/wiki/Equirectangular_projection
+        # On the Haversine formula, see: https://en.wikipedia.org/wiki/Haversine_formula
+        # On the Vincenty formula, see: https://en.wikipedia.org/wiki/Vincenty%27s_formulae
+        # On geodesics on an ellipsoid, see: https://en.wikipedia.org/wiki/Geodesics_on_an_ellipsoid
         return conn.execute(
             f"""
                 WITH event_with_distance AS (
@@ -72,8 +82,9 @@ def test_duckdb(benchmark):
     assert len(genera) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
 
 
-@pytest.mark.library_name("Polars")
 def test_polars(benchmark):
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "Polars", pl)
+
     def get_genera():
         event_distance_df = (
             pl.read_csv(EVENT_TSV_PATH, separator="\t", quote_char=None)
@@ -124,8 +135,9 @@ def test_polars(benchmark):
     assert len(genera["is_anatidae"]) - number_of_anatidae == EXPECTED_NUMBER_OF_OTHER_BIRDS_AROUND_POI
 
 
-@pytest.mark.library_name("Pandas")
 def test_pandas(benchmark):
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "Pandas", pd)
+
     def get_genera():
         event_df = pd.read_csv(EVENT_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
         event_df["distance"] = np.sqrt((event_df.decimalLatitude - POI_LATITUDE)**2 + (event_df.decimalLongitude - POI_LONGITUDE)**2)
@@ -167,8 +179,9 @@ PYARROW_READ_CSV_KWARGS = dict(
 )
 
 
-@pytest.mark.library_name("PyArrow")
 def test_pyarrow(benchmark):
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, "PyArrow", pa)
+
     def get_genera():
         event_distance_table = pa.csv.read_csv(EVENT_TSV_PATH, convert_options=pa.csv.ConvertOptions(column_types={"decimalLatitude": pa.float64(), "decimalLongitude": pa.float64()}), **PYARROW_READ_CSV_KWARGS)
         event_distance_table = (
