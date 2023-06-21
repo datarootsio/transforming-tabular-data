@@ -5,26 +5,26 @@ _Comparing Pandas v. Polars v. PyArrow v. DuckDB_
 <img style="max-width: 15rem;" src="images/animal-collage.jpg">
 <!-- ![Feature image showing four pictures of a panda, a polar bear, a duck, and an archerfish](images/animal-collage.jpg) -->
 
-Let me set the scene: you have that fresh excitement to explore a shiny new dataset. Luckily it’s manageable enough to use your own computer; so you grab the nearest Python notebook or REPL, ready to start hacking away. But which library to use? Naturally you could reach for trusty old Pandas. But what about a fancy new dataframe library like Polars or datatable? Or you can try out a columnar framework like PyArrow?
+Let me set the scene: you're brimming with excitement to explore that shiny new data. Luckily it’s manageable enough to use your own computer; so you grab the nearest Python notebook or REPL, ready to start hacking away. But which library to use? Naturally you could reach for trusty old Pandas. But what about a fancy new dataframe library like Polars or datatable? Or you can try out a columnar framework like PyArrow?
 
-Let’s make some sense of all this choice!
+Let’s delve into the dazzling domain of dataframes to make some sense of all this choice!
 
-__tldr;__ _Use DuckDB if you're comfortable with SQL, use Polars over Pandas unless you need some specific extension, and use PyArrow only if you need specific Arrow functionality to build upon._
+__tldr;__ _Use DuckDB if you're comfortable with SQL, use Polars over Pandas unless you need some specific extension, and use PyArrow only if you're building a library on top of it._
 
 ## Introduction
 
 It all starts with the humble table. A concept that was never truly ‘invented’ as much as it has been continually refined from the earliest forms of record keeping. Even today – or rather, especially today, methods to store and transform data in tables keep evolving. From relational databases like PostgreSQL that are more capable than ever, to extremely scalable map-reduce solutions like Dask or Spark. And, of course, the irreplaceable Spreadsheet.
 
-But back to your predicament: you want to work in Python and keep it simple, so no standalone SQL or distributed systems. In that case there's all the dataframe and datatable frameworks to choose from. Let's compare [Pandas](https://pandas.pydata.org/) (the incumbent), [Polars](https://www.pola.rs/) (a challenger), [PyArrow](https://arrow.apache.org/docs/python/index.html) (low level columnar), and [DuckDB](https://duckdb.org/) (in-process/embedded analytical SQL). 
+But back to your predicament: you want to work in Python and keep it simple, so no standalone SQL or distributed systems. In that case there's all the dataframe and datatable frameworks to choose from. Let's compare four popular ones: [Pandas](https://pandas.pydata.org/) (the incumbent), [Polars](https://www.pola.rs/) (a challenger), [PyArrow](https://arrow.apache.org/docs/python/index.html) (low level columnar), and [DuckDB](https://duckdb.org/) (in-process/embedded analytical SQL). 
 
 
 ## Docs & Ecosystem
 
 As with any new library to try out, ease of use and how quickly you can start hacking is a big consideration. The strongest contenders in this regard are Pandas and DuckDB. __Pandas has a huge ecosystem of documentation, tutorials, and Q&A threads__. And if some datatype is not built-in, there's a good chance someone has already written a library for it. How __DuckDB__ compares __depends on your familiarity with SQL__. For some it may even be easier than writing Python. In that case it's probably quicker to get started with than Pandas, given that DuckDB's Python API is already well documented.
 
-__Polars__ too is documented extensively. But it cannot compete with Pandas in terms of ecosystem and support (it has more than 200 times less questions on StackOverflow). As you could guess from the name it does intentionally have a very __similar API__. So if you're already familiar with Pandas, you'll feel right at home. If you're not, the __learning curve__ will no doubt be steeper. Add to this that Error messages from Polars can be quite cryptic at times, due to the extra layers of abstraction it uses (Rust and Arrow). This all makes experimenting for first time users a bit more difficult.
+__Polars__ too is documented extensively. But it cannot compete with Pandas in terms of ecosystem and support (it has more than 200 times less questions on StackOverflow). Error messages from Polars can also be quite cryptic at times, due to the extra layers of abstraction it uses (Rust and Arrow). This all makes experimenting for first time users a bit more difficult.
 
-Lastly, __PyArrow__ is intentionally a __lower-level__ framework. It is in large part meant as a building block for other libraries. This is reflected in the documentation, which is more technical and less tutorial-like. It's also reflected in the exposed API, which is less intuitive and can feel clunky at times. If you're willing to put in the effort though, it's a very __powerful__ tool.
+Lastly, __PyArrow__ is intentionally a __lower-level__ framework. It is in large part meant as a building block for other libraries. This is reflected in the documentation, which is more technical and less tutorial-like. If you're willing to put in the effort though, it's a very __powerful__ tool.
 
 
 ## Gotta Go Fast
@@ -44,7 +44,7 @@ The big picture of both tests is the same though: __Pandas is__ often much __slo
 
 ## Code Comfort
 
-Lastly, let's look at the interface the libraries expose. __Pandas__ has by far the largest API surface, often offering __multiple ways__ to achieve the same result [2]. In my experience this does help brute forcing your way to a solution, but it can also be confusing and lead to inconsistent code. __Polars is more opinionated__ in this regard, offering a _consistent and predictable_ API ([Polars Philosophy](https://pola-rs.github.io/polars-book/user-guide/#philosophy)). While sometimes more verbose, Polars code can be more readable as a result.
+Lastly, let's look at the interface the libraries expose. __Pandas__ has by far the largest API surface, often offering __multiple ways__ to achieve the same result [2]. In my experience this does help to brute force your way to a solution, but it can also be confusing and lead to inconsistent code. __Polars is more opinionated__ in this regard, offering a _consistent and predictable_ API ([Polars Philosophy](https://pola-rs.github.io/polars-book/user-guide/#philosophy)). While sometimes more verbose, Polars code can be more readable as a result. As you could guess from the name it does of course borrow most concepts from Pandas, so if you're already familiar with Pandas, you'll feel right at home. If you're not, the __learning curve__ will no doubt be steeper.
 
 As for __PyArrow__: its __low-level__ Arrow core really shines through. This encourages you to think in the same column-oriented way that data is processed internally. Operations on your data are also more explicit, which – for better or worse – uncovers abstractions that higher level libraries provide.
 
