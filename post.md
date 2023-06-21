@@ -2,6 +2,9 @@
 
 _Comparing Pandas v. Polars v. PyArrow v. DuckDB_
 
+<img style="max-width: 15rem;" src="images/animal-collage.jpg">
+<!-- ![Feature image showing four pictures of a panda, a polar bear, a duck, and an archerfish](images/animal-collage.jpg) -->
+
 Let me set the scene: you have that fresh excitement to explore a shiny new dataset. Luckily it’s manageable enough to use your own computer; so you grab the nearest Python notebook or REPL, ready to start hacking away. But which library to use? Naturally you could reach for trusty old Pandas. But what about a fancy new dataframe library like Polars or datatable? Or you can try out a columnar framework like PyArrow?
 
 Let’s make some sense of all this choice!
