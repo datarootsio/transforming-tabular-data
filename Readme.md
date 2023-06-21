@@ -50,3 +50,7 @@ Additionally, the ~5.73GB [Backbone Taxonomy dataset](https://www.gbif.org/datas
 ## Related work
 
 [_Database-like ops benchmark_](https://h2oai.github.io/db-benchmark/)
+
+## License
+
+The source code in this repository is licensed under the [MIT License](License.txt).

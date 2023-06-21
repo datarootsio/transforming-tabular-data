@@ -48,11 +48,15 @@ def test_polars(benchmark):
     assert sum(bird_counts["individualCount"]) == EXPECTED_TOTAL_NUMBER_OF_BIRDS
 
 
-def test_pandas(benchmark):
-    set_benchmark_meta(benchmark, BENCHMARK_NAME, "Pandas", pd)
+@pytest.mark.parametrize("engine", ["pyarrow", "c"])
+def test_pandas(benchmark, engine: str):
+    set_benchmark_meta(benchmark, BENCHMARK_NAME, f"Pandas ({engine})", pd)
 
     def get_bird_counts():
-        df = pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t")
+        read_csv_kwargs = {}
+        if engine == "pyarrow":
+            read_csv_kwargs["dtype_backend"] = "pyarrow"
+        df = pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t", engine=engine, **read_csv_kwargs)
         return (
             df[["scientificName", "individualCount"]]
             .groupby("scientificName")

@@ -140,7 +140,7 @@ def test_pandas(benchmark):
 
     def get_genera():
         event_df = pd.read_csv(EVENT_TSV_PATH, sep="\t", quoting=csv.QUOTE_NONE)
-        event_df["distance"] = np.sqrt((event_df.decimalLatitude - POI_LATITUDE)**2 + (event_df.decimalLongitude - POI_LONGITUDE)**2)
+        event_df["distance"] = ((event_df.decimalLatitude - POI_LATITUDE)**2 + (event_df.decimalLongitude - POI_LONGITUDE)**2).pow(0.5)
         event_df = event_df[["id", "distance"]]
         event_df = event_df[event_df.distance < POI_MAX_DISTANCE_DEGREES]
 
