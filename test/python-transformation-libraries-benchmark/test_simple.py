@@ -55,7 +55,7 @@ def test_pandas(benchmark, engine: str):
     def get_bird_counts():
         read_csv_kwargs = {}
         if engine == "pyarrow":
-            read_csv_kwargs["dtype_backend"] = "pyarrow"
+            read_csv_kwargs.update(dict(dtype_backend="pyarrow"))
         df = pd.read_csv(OCCURRENCE_TSV_PATH, sep="\t", engine=engine, **read_csv_kwargs)
         return (
             df[["scientificName", "individualCount"]]
