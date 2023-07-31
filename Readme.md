@@ -6,7 +6,7 @@ _Comparing Pandas v. Polars v. PyArrow v. DuckDB 🐼🐻‍❄️🏹🦆_
 
 This repository contains the benchmarking code backing the identically titled blog post: [Transforming Tabular Data in Python 🛠️📈](https://dataroots.io/research/contributions/transforming-tabular-data-in-python). This blog post compares four different frameworks based on performance and ease of use:
 - [Pandas](https://pandas.pydata.org/) - the (as of recently) de-facto standard for dataframes in Python
-- [Polars](https://pola-rs.github.io) - a challenger to Pandas, backed by [Rust](https://www.rust-lang.org/) and [Apache Arrow](https://arrow.apache.org/)
+- [Polars](https://www.pola.rs/) - a challenger to Pandas, backed by [Rust](https://www.rust-lang.org/) and [Apache Arrow](https://arrow.apache.org/)
 - [PyArrow](https://arrow.apache.org/docs/python/) - the direct Python bindings for Apache Arrow
 - [DuckDB](https://duckdb.org/) - an in-process Python analytical SQL database
 
