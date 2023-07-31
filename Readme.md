@@ -1,5 +1,5 @@
 # Transforming Tabular Data in Python 🛠️📈
-_Comparing Pandas v. Polars v. PyArrow v. DuckDB_
+_Comparing Pandas v. Polars v. PyArrow v. DuckDB 🐼🐻‍❄️🏹🦆_
 
 
 <br>
